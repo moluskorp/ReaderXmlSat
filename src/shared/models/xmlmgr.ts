@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 
 export const createXmlTable = () => {
   const qry =
-    'CREATE TABLE xml (id VARCHAR PRIMARY KEY, dEmi datetime, cfe VARCHAR, pdv VARCHAR, total FLOAT, active BOOLEAN);'
+    'CREATE TABLE xml (id VARCHAR PRIMARY KEY, dEmi datetime, cfe VARCHAR, pdv VARCHAR, total FLOAT, subtotal FLOAT, discount FLOAT, active BOOLEAN);'
   return new Promise((res) => {
     db.all(qry, (_, rows) => {
       res(rows)
@@ -20,7 +20,7 @@ export const insertXml = (data: XmlDb) => {
   const minute = insertZeroMinorTen(data.dEmi.getMinutes())
   const second = insertZeroMinorTen(data.dEmi.getSeconds())
   const date = `${data.dEmi.getFullYear()}-${month}-${day} ${hour}:${minute}:${second}`
-  const qry = `INSERT INTO xml (id, dEmi, cfe, pdv, total, active) VALUES ('${data.id}', '${date}', '${data.cfe}', '${data.pdv}', ${data.total}, true)`
+  const qry = `INSERT INTO xml (id, dEmi, cfe, pdv, total, subtotal, discount, active) VALUES ('${data.id}', '${date}', '${data.cfe}', '${data.pdv}', ${data.total}, ${data.subtotal}, ${data.discount}, true)`
   return new Promise((res) => {
     db.all(qry, (e, rows) => {
       res(rows)

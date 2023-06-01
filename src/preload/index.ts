@@ -16,8 +16,6 @@ declare global {
   }
 }
 
-console.log('Starting Electron')
-
 const api = {
   changeDirectory(): Promise<string | null> {
     return ipcRenderer.invoke(IPC.DIRECTORY.CHANGE_DIRECTORY)
