@@ -1,4 +1,4 @@
-# Readme - Aplicação PDV SAT
+# Aplicação PDV SAT
 
 Esta aplicação é responsável por ler os arquivos de venda do PDV SAT e criar um banco de dados local em SQLite, permitindo consultar as vendas, separá-las por vendas com descontos e vendas canceladas. A interface da aplicação é construída utilizando Electron e Material-UI.
 
