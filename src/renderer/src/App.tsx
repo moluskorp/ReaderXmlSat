@@ -1,4 +1,11 @@
-import { Button, TextField, Box, Typography, Divider } from '@mui/material'
+import {
+  Button,
+  TextField,
+  Box,
+  Typography,
+  Divider,
+  useTheme,
+} from '@mui/material'
 import { LoadingButton } from '@mui/lab'
 import { useEffect, useRef, useState } from 'react'
 import { Xml } from '~/src/shared/types/xml'
@@ -10,59 +17,126 @@ import pt from 'date-fns/locale/pt-BR'
 import { XmlModal, XmlModalHandles } from './components/XmlModal'
 import { LoadingFiles } from './components/LoadingFiles'
 
+type XmlWithFormater = Xml & {
+  totalFormatted: string
+  discountFormatted: string
+  subtotalFormatted: string
+}
+
 export function App() {
   const [directory, setDirectory] = useState('')
   const submitDisabled = !directory
-  const [xmls, setXmls] = useState<Xml[]>()
+  const [xmls, setXmls] = useState<XmlWithFormater[]>()
   const [loading, setLoading] = useState(false)
   const [startDate, setStartDate] = useState(new Date())
   const [endDate, setEndDate] = useState(new Date())
   const [loadingFiles, setLoadingFiles] = useState(true)
+  const [xmlsFilter, setXmlsFilter] = useState<XmlWithFormater[]>()
+  const [filterType, setFilterType] = useState<'discount' | 'cancel' | 'all'>(
+    'all',
+  )
+  const theme = useTheme()
 
-  useEffect(() => {
-    setLoadingFiles(true)
-    window.api.xmlReadFiles().then(() => {
-      setInterval(() => {
-        setLoadingFiles(true)
-        window.api.xmlReadFiles().then(() => {
-          setLoadingFiles(false)
-        })
-      }, 2000)
-      setLoadingFiles(false)
-    })
-  }, [])
+  // useEffect(() => {
+  //   setLoadingFiles(true)
+  //   window.api.xmlReadFiles().then(() => {
+  //     setInterval(() => {
+  //       setLoadingFiles(true)
+  //       window.api.xmlReadFiles().then(() => {
+  //         setLoadingFiles(false)
+  //       })
+  //     }, 2000)
+  //     setLoadingFiles(false)
+  //   })
+  // }, [])
+
+  console.log(xmlsFilter)
 
   const modalRef = useRef<XmlModalHandles>(null)
 
-  const total = xmls?.reduce((sumTotal, item) => {
-    return sumTotal + item.total
-  }, 0)
+  const subtotal = xmlsFilter
+    ? xmlsFilter.reduce((sumSubtotal, item) => {
+        return sumSubtotal + item.subtotal
+      }, 0)
+    : 0
 
-  const mediaOrder = formatPrice(total! / xmls?.length!)
+  const discount = xmls
+    ? xmls.reduce((sumDiscount, item) => {
+        return sumDiscount + item.discount
+      }, 0)
+    : 0
 
+  const total = xmlsFilter
+    ? xmlsFilter.reduce((sumTotal, item) => {
+        return sumTotal + item.total
+      }, 0)
+    : 0
+
+  const totalCancel = xmls
+    ? xmls.reduce((sum, item) => {
+        if (!item.active) {
+          return sum + item.total
+        }
+        return sum + 0
+      }, 0)
+    : 0
+
+  const mediaOrder = xmlsFilter
+    ? xmlsFilter.length > 0
+      ? formatPrice(total! / xmlsFilter.length!)
+      : 0
+    : 0
+
+  const orderLenght = xmlsFilter ? xmlsFilter.length : 0
   const totalFormatted = formatPrice(total!)
+  const subtotalFormatted = formatPrice(subtotal)
+  const discountFormatted = formatPrice(discount)
+  const totalCancelFormatted = formatPrice(totalCancel)
 
-  const xmlsNew = xmls?.map((xml) => {
-    return {
-      ...xml,
-      totalFormatted: formatPrice(xml.total),
-    }
-  })
-
-  async function handleOpenModal(xml: Xml & { totalFormatted: string }) {
-    if (xmlsNew) {
-      modalRef.current?.openModal(xml)
-    }
+  async function handleOpenModal(xml: XmlWithFormater) {
+    modalRef.current?.openModal(xml)
   }
 
   async function readXmls() {
     setLoading(true)
-    const xmls = await window.api.GetOrders({ startDate, endDate })
-    setXmls(xmls)
+    const xmlsReads = await window.api.GetOrders({ startDate, endDate })
+    const xmlsNew = xmlsReads.map((xml) => {
+      return {
+        ...xml,
+        totalFormatted: formatPrice(xml.total),
+        discountFormatted: formatPrice(xml.discount),
+        subtotalFormatted: formatPrice(xml.subtotal),
+      }
+    })
+    const filteredXmls = xmlsNew.filter((xml) => xml.active)
+    setXmlsFilter(filteredXmls)
+    setXmls(xmlsNew)
     setLoading(false)
   }
 
-  console.log(xmls)
+  function handleDiscount() {
+    if (filterType === 'discount') {
+      setFilterType('all')
+      const filteredXmls = xmls?.filter((xml) => xml.active)
+      setXmlsFilter(filteredXmls)
+      return
+    }
+    setFilterType('discount')
+    const filteredXmls = xmls?.filter((xml) => xml.discount > 0)
+    setXmlsFilter(filteredXmls)
+  }
+
+  function handleCanceled() {
+    if (filterType === 'cancel') {
+      const filteredXmls = xmls?.filter((xml) => xml.active)
+      setXmlsFilter(filteredXmls)
+      setFilterType('all')
+      return
+    }
+    const filteredXmls = xmls?.filter((xml) => !xml.active)
+    setXmlsFilter(filteredXmls)
+    setFilterType('cancel')
+  }
 
   useEffect(() => {
     window.api.getDirectory().then((folder) => {
@@ -140,19 +214,16 @@ export function App() {
             Iniciar
           </LoadingButton>
         </Box>
-        <Box display="flex" flex="1" justifyContent="space-between" gap={2}>
+        <Box display="flex" justifyContent="space-between" gap={2}>
           <Box display="flex" flex="1" flexDirection={'column'}>
-            <Box
-              display="flex"
-              flex="1"
-              justifyContent="space-between"
-              ml={1}
-              mt={2}
-            >
+            <Box display="flex" justifyContent="space-between" ml={1} mt={2}>
               <Typography variant="subtitle2">CFE</Typography>
               <Typography variant="subtitle2">Caixa</Typography>
-              <Typography variant="subtitle2" mr={2}>
+              <Typography variant="subtitle2" mr={3}>
                 Data
+              </Typography>
+              <Typography variant="subtitle2" ml={1}>
+                Desconto
               </Typography>
               <Box width={'12%'} display="flex" justifySelf="flex-end">
                 <Typography variant="subtitle2">Total</Typography>
@@ -165,7 +236,7 @@ export function App() {
               mt={2}
               sx={{ overflowY: 'scroll', maxHeight: 'calc(100vh - 240px)' }}
             >
-              {xmlsNew?.map((xml) => (
+              {xmlsFilter?.map((xml) => (
                 <Button
                   key={xml.id}
                   variant="outlined"
@@ -176,9 +247,14 @@ export function App() {
                 >
                   <Box display="flex" flex="1" justifyContent="space-between">
                     <Typography variant="subtitle1">{xml.cfe}</Typography>
-                    <Typography variant="subtitle1">{xml.pdv}</Typography>
-                    <Typography variant="subtitle1">
+                    <Typography variant="subtitle1" mr={2}>
+                      {xml.pdv}
+                    </Typography>
+                    <Typography variant="subtitle1" mr={3}>
                       {xml.dEmi.toLocaleDateString()}
+                    </Typography>
+                    <Typography variant="subtitle1">
+                      {xml.discountFormatted}
                     </Typography>
                     <Box width={'12%'} display="flex" justifySelf="flex-end">
                       <Typography variant="subtitle1">
@@ -206,13 +282,45 @@ export function App() {
           />
           <Box display="flex" flexDirection="column" mt={6} gap={2} mr={2}>
             <Box>
-              <Typography>Total:</Typography>
+              <Typography>Valor Bruto:</Typography>
+              <Typography variant="subtitle2">{subtotalFormatted}</Typography>
+            </Box>
+            <Box
+              onClick={handleDiscount}
+              color={
+                filterType === 'discount' ? theme.palette.primary.main : ''
+              }
+              sx={{
+                '&:hover': {
+                  cursor: 'pointer',
+                },
+              }}
+            >
+              <Typography>Desconto:</Typography>
+              <Typography variant="subtitle2">{discountFormatted}</Typography>
+            </Box>
+            <Box>
+              <Typography>Valor Liquido:</Typography>
               <Typography variant="subtitle2">{totalFormatted}</Typography>
+            </Box>
+            <Box
+              onClick={handleCanceled}
+              color={filterType === 'cancel' ? theme.palette.primary.main : ''}
+              sx={{
+                '&:hover': {
+                  cursor: 'pointer',
+                },
+              }}
+            >
+              <Typography>Cancelados:</Typography>
+              <Typography variant="subtitle2">
+                {totalCancelFormatted}
+              </Typography>
             </Box>
             <Divider />
             <Box>
               <Typography>Quantidade Vendas:</Typography>
-              <Typography variant="subtitle2">{xmlsNew?.length}</Typography>
+              <Typography variant="subtitle2">{orderLenght}</Typography>
             </Box>
             <Divider />
             <Box>
