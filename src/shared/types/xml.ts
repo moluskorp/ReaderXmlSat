@@ -6,6 +6,9 @@ export interface XmlDb {
   dEmi: Date
   pdv: string
   total: number
+  subtotal: number
+  discount: number
+  active?: boolean
 }
 
 export type Xml = XmlDb & {

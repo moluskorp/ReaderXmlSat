@@ -8,6 +8,7 @@ import {
   TableHead,
   TableRow,
   Typography,
+  useTheme,
 } from '@mui/material'
 import { forwardRef, useState, useImperativeHandle } from 'react'
 import { Xml } from '~/src/shared/types/xml'
@@ -15,6 +16,8 @@ import { formatPrice } from '../util/formatPrice'
 
 type XmlModalType = Xml & {
   totalFormatted: string
+  discountFormatted: string
+  subtotalFormatted: string
 }
 
 type XmlModalInstance = {
@@ -23,6 +26,8 @@ type XmlModalInstance = {
   pdv: string
   total: number
   totalFormatted: string
+  discountFormatted: string
+  subtotalFormatted: string
   items: {
     id: string
     itemid: string
@@ -44,13 +49,13 @@ export const XmlModal = forwardRef<XmlModalHandles>(function XmlModal(_, ref) {
   const [modalOpen, setModalOpen] = useState(false)
   const [xml, setXml] = useState<XmlModalInstance>()
 
+  const theme = useTheme()
+
   useImperativeHandle(ref, () => {
     return {
       openModal,
     }
   })
-
-  console.log('xml', xml)
 
   const openModal = async (data: XmlModalType) => {
     const items = await window.api.xmlItemsGet(data.id)
@@ -108,8 +113,18 @@ export const XmlModal = forwardRef<XmlModalHandles>(function XmlModal(_, ref) {
           </Box>
         </Box>
         <Box display="flex" justifyContent={'space-between'} mt={2}>
+          <Typography variant="subtitle2" color={theme.palette.secondary.main}>
+            Subtotal: {xml?.subtotalFormatted}
+          </Typography>
+          <Typography variant="subtitle2" color={theme.palette.error.main}>
+            Desconto: {`- ${xml?.discountFormatted}`}
+          </Typography>
+        </Box>
+        <Box display="flex" justifyContent={'space-between'} mt={2}>
           <Typography variant="h4">Total:</Typography>
-          <Typography variant="h4">{xml?.totalFormatted}</Typography>
+          <Typography variant="h4" color={theme.palette.primary.main}>
+            {xml?.totalFormatted}
+          </Typography>
         </Box>
         <Box mt={2} />
         <Table size="small" aria-label="a dense table">

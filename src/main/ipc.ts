@@ -103,6 +103,8 @@ ipcMain.handle(IPC.XML.READ_FILES, async () => {
                 cfe: String(json.CFe.infCFe[0].ide[0].nCFe),
                 pdv: String(json.CFe.infCFe[0].ide[0].numeroCaixa),
                 items,
+                subtotal: Number(json.CFe.infCFe[0].total[0].ICMSTot[0].vProd),
+                discount: Number(json.CFe.infCFe[0].total[0].ICMSTot[0].vDesc),
                 total: Number(json.CFe.infCFe[0].total[0].vCFe[0]),
                 active: true,
               }
