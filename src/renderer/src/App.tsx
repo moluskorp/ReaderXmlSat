@@ -37,18 +37,18 @@ export function App() {
   )
   const theme = useTheme()
 
-  // useEffect(() => {
-  //   setLoadingFiles(true)
-  //   window.api.xmlReadFiles().then(() => {
-  //     setInterval(() => {
-  //       setLoadingFiles(true)
-  //       window.api.xmlReadFiles().then(() => {
-  //         setLoadingFiles(false)
-  //       })
-  //     }, 2000)
-  //     setLoadingFiles(false)
-  //   })
-  // }, [])
+  useEffect(() => {
+    setLoadingFiles(true)
+    window.api.xmlReadFiles().then(() => {
+      setInterval(() => {
+        setLoadingFiles(true)
+        window.api.xmlReadFiles().then(() => {
+          setLoadingFiles(false)
+        })
+      }, 2000)
+      setLoadingFiles(false)
+    })
+  }, [])
 
   console.log(xmlsFilter)
 
